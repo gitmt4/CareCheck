@@ -1,0 +1,6 @@
+import type {Schedule} from './care';
+export type ElderLanguage='te'|'en';
+const teTitles:Record<string,string>={'breakfast':'అల్పాహారం','lunch':'మధ్యాహ్న భోజనం','dinner':'రాత్రి భోజనం','morning tablets':'ఉదయం మందులు','evening tablets':'సాయంత్రం మందులు','night tablets':'రాత్రి మందులు','tablets':'మందులు','medication':'మందులు'};
+export function elderTitle(s:Schedule,lang:ElderLanguage){return lang==='te'?(teTitles[s.title.trim().toLowerCase()]||s.title):s.title;}
+export function elderTime(time:string,lang:ElderLanguage){const [h,m]=time.split(':').map(Number);return `${h%12||12}:${String(m).padStart(2,'0')} ${lang==='te'?(h<5?'రాత్రి':h<12?'ఉదయం':h<17?'మధ్యాహ్నం':h<21?'సాయంత్రం':'రాత్రి'):(h>=12?'PM':'AM')}`;}
+export function elderAnswer(status:string,kind:string,lang:ElderLanguage){const te:Record<string,string>={done:kind==='medicine'?'మందులు తీసుకున్నాను':'భోజనం చేశాను',later:kind==='medicine'?'ఇంకా తీసుకోలేదు':'ఇంకా తినలేదు',little:'కొంచెం తిన్నాను',help:'నాకు సహాయం కావాలి',unconfirmed:'ఇంకా సమాధానం ఇవ్వలేదు',upcoming:'తర్వాత'};const en:Record<string,string>={done:kind==='medicine'?'I took my tablets':'I ate my meal',later:kind==='medicine'?'I haven’t taken them yet':'I haven’t eaten yet',little:'I ate a little',help:'I need help',unconfirmed:'No answer yet',upcoming:'Later today'};return (lang==='te'?te:en)[status]||status;}

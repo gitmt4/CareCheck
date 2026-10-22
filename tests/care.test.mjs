@@ -1,0 +1,12 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {localDate,taskStatus,demoData,dataSchema,emptyData} from '../lib/care.ts';
+const now=new Date('2026-10-14T08:15:00Z');
+test('local dates respect India midnight, not the family timezone',()=>{assert.equal(localDate(new Date('2026-10-14T19:00:00Z'),'Asia/Kolkata'),'2026-10-15');assert.equal(localDate(new Date('2026-10-14T19:00:00Z'),'America/New_York'),'2026-10-14')});
+test('due without response means unconfirmed, never missed dose',()=>{const d=demoData(now);const s=d.schedules.find(s=>s.id==='thatha-lunch');assert.equal(taskStatus(d,s,now),'unconfirmed')});
+test('future items remain upcoming',()=>{const d=demoData(now);assert.equal(taskStatus(d,d.schedules.find(s=>s.id==='thatha-dinner'),now),'upcoming')});
+test('not-yet and meal completion are distinct',()=>{const d=demoData(now);assert.equal(taskStatus(d,d.schedules.find(s=>s.id==='thatha-tablets'),now),'later');assert.equal(taskStatus(d,d.schedules.find(s=>s.id==='amma-lunch'),now),'done')});
+test('latest correction wins without destroying audit history',()=>{const d=demoData(now);const s=d.schedules.find(s=>s.id==='thatha-tablets');const old=d.responses.find(r=>r.scheduleId===s.id);d.responses.push({...old,id:'correction',at:now.toISOString(),status:'done'});assert.equal(taskStatus(d,s,now),'done');assert.equal(d.responses.filter(r=>r.scheduleId===s.id).length,2)});
+test('yesterday completion does not confirm today',()=>{const d=demoData(now);const s=d.schedules.find(s=>s.id==='amma-tablets');assert.equal(taskStatus(d,s,new Date('2026-10-15T08:15:00Z')),'unconfirmed')});
+test('schema rejects malformed times and unknown people',()=>{const d=demoData(now);assert.equal(dataSchema.safeParse(d).success,true);assert.equal(dataSchema.safeParse(emptyData).success,true);assert.equal(dataSchema.safeParse({...d,schedules:[{...d.schedules[0],time:'25:15'}]}).success,false);assert.equal(dataSchema.safeParse({...d,schedules:[{...d.schedules[0],profileId:'not-a-person'}]}).success,false)});
+test('separate profiles do not share responses',()=>{const d=demoData(now);assert.equal(taskStatus(d,d.schedules.find(s=>s.id==='amma-tablets'),now),'done');assert.equal(taskStatus(d,d.schedules.find(s=>s.id==='thatha-tablets'),now),'later')});
